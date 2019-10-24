@@ -1,0 +1,44 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Input;
+using Microsoft.Xna.Framework.Content;
+
+namespace DonkeyKong
+{
+    class TextureManager
+    {
+        public static Texture2D bridgeTex, ladderTex, emptyTex, bridgeLadderTex, enemyTex, marioSpritesheetTex, startScreenTex, loseScreenTex, sprintTex, enemySpritesheetTex, phoneTex, dressTex, umbrellaTex, helpTex, hammerTex, lifeTex, ladder2Tex, paulineTex, bonusFrameTex, hammerSwingTex;
+        public static SpriteFont adore64Font;
+
+        public TextureManager(ContentManager content)
+        {
+            bridgeTex = content.Load<Texture2D>("bridge");
+            ladderTex = content.Load<Texture2D>("ladder");
+            emptyTex = content.Load<Texture2D>("empty");
+            bridgeLadderTex = content.Load<Texture2D>("bridgeLadder");
+            enemyTex = content.Load<Texture2D>("enemy");
+            marioSpritesheetTex = content.Load<Texture2D>("mario_old_spritesheet");
+            startScreenTex = content.Load<Texture2D>("start");
+            loseScreenTex = content.Load<Texture2D>("loose");
+            sprintTex = content.Load<Texture2D>("sprint");
+            adore64Font = content.Load<SpriteFont>("adore64");
+            enemySpritesheetTex = content.Load<Texture2D>("enemy_spritesheet");
+            phoneTex = content.Load<Texture2D>("phone");
+            dressTex = content.Load<Texture2D>("dress");
+            umbrellaTex = content.Load<Texture2D>("umbrella");
+            bonusFrameTex = content.Load<Texture2D>("bonus");
+            ladder2Tex = content.Load<Texture2D>("ladder2");
+            helpTex = content.Load<Texture2D>("help");
+            hammerTex = content.Load<Texture2D>("hammer");
+            hammerSwingTex = content.Load<Texture2D>("hammer_swing");
+            paulineTex = content.Load<Texture2D>("pauline");
+            lifeTex = content.Load<Texture2D>("life");
+
+        }
+    }
+}
