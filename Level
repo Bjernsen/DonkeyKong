@@ -1,0 +1,82 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.IO;
+using System.Threading.Tasks;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Input;
+
+namespace DonkeyKong
+{
+    class Level
+    {
+        StreamReader mapReader;
+        
+        List<string> mapStrings;
+        string mapName;
+        static Tile[,] tileArray;
+
+        public Level(string mapName)
+        {
+            this.mapName = mapName;
+        }
+        
+        public void BuildMap()
+        {
+            mapReader = new StreamReader(mapName);
+            mapStrings = new List<string>();
+            while (mapReader.EndOfStream == false)
+            {
+                mapStrings.Add(mapReader.ReadLine());
+            }
+            mapReader.Close();
+
+            tileArray = new Tile[mapStrings[0].Length, mapStrings.Count];
+
+            for (int i = 0; i < tileArray.GetLength(0); i++)
+            {
+                for (int j = 0; j < tileArray.GetLength(1); j++)
+                {
+                    if (mapStrings[j][i] == 'b')
+                    {
+                        tileArray[i, j] = new Tile(TextureManager.bridgeTex, new Vector2(TextureManager.bridgeTex.Width * i, TextureManager.bridgeTex.Height * j), Tile.Tiles.Bridge);
+                    }
+                    else if (mapStrings[j][i] == 'l')
+                    {
+                        tileArray[i, j] = new Tile(TextureManager.ladderTex, new Vector2(TextureManager.ladderTex.Width * i, TextureManager.ladderTex.Height * j), Tile.Tiles.Ladder);
+                    } 
+                    else if (mapStrings[j][i] == '-')
+                    {
+                        tileArray[i, j] = new Tile(TextureManager.emptyTex, new Vector2(TextureManager.emptyTex.Width * i, TextureManager.emptyTex.Height * j), Tile.Tiles.Empty);
+                    }
+                    else if (mapStrings[j][i] == 'd')
+                    {
+                        tileArray[i, j] = new Tile(TextureManager.bridgeLadderTex, new Vector2(TextureManager.bridgeLadderTex.Width * i, TextureManager.bridgeLadderTex.Height * j), Tile.Tiles.BridgeLadder);
+                    }
+                    
+                }
+            }
+
+        }
+
+        public void DrawMap(SpriteBatch sb)
+        {
+            foreach (Tile t in tileArray)
+            {
+                if (t != null)
+                {
+                    t.Draw(sb);
+                }
+                
+            }
+        }
+
+        public static Tile.Tiles GetTileAtPosition(Vector2 vec)
+        {
+            return tileArray[(int)vec.X / 40, (int)vec.Y / 40].tileType;
+        }
+
+    }
+}
