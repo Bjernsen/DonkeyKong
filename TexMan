@@ -12,8 +12,8 @@ namespace DonkeyKong
 {
     class TextureManager
     {
-        public static Texture2D bridgeTex, ladderTex, emptyTex, bridgeLadderTex, enemyTex, marioSpritesheetTex, startScreenTex, loseScreenTex, sprintTex, enemySpritesheetTex, phoneTex, dressTex, umbrellaTex, helpTex, hammerTex, lifeTex, ladder2Tex, paulineTex, bonusFrameTex, hammerSwingTex;
-        public static SpriteFont adore64Font;
+        public static Texture2D bridgeTex, ladderTex, emptyTex, bridgeLadderTex, heartTex, donkeyKongSpritesheetTex, donkeyKongFalling, scoreAni1, scoreAni2, scoreAni3, scoreAni4, enemyTex, marioSpritesheetTex, startScreenTex, loseScreenTex, sprintTex, enemySpritesheetTex, phoneTex, dressTex, umbrellaTex, helpTex, hammerTex, lifeTex, ladder2Tex, paulineTex, bonusFrameTex, hammerSwingTex, oilTex, enemyGhostSpriteTex;
+        public static SpriteFont adore64Font, smallFont;
 
         public TextureManager(ContentManager content)
         {
@@ -22,11 +22,12 @@ namespace DonkeyKong
             emptyTex = content.Load<Texture2D>("empty");
             bridgeLadderTex = content.Load<Texture2D>("bridgeLadder");
             enemyTex = content.Load<Texture2D>("enemy");
-            marioSpritesheetTex = content.Load<Texture2D>("mario_old_spritesheet");
+            marioSpritesheetTex = content.Load<Texture2D>("mario_spritesheet");
             startScreenTex = content.Load<Texture2D>("start");
             loseScreenTex = content.Load<Texture2D>("loose");
             sprintTex = content.Load<Texture2D>("sprint");
             adore64Font = content.Load<SpriteFont>("adore64");
+            smallFont = content.Load<SpriteFont>("smallFont");
             enemySpritesheetTex = content.Load<Texture2D>("enemy_spritesheet");
             phoneTex = content.Load<Texture2D>("phone");
             dressTex = content.Load<Texture2D>("dress");
@@ -38,6 +39,16 @@ namespace DonkeyKong
             hammerSwingTex = content.Load<Texture2D>("hammer_swing");
             paulineTex = content.Load<Texture2D>("pauline");
             lifeTex = content.Load<Texture2D>("life");
+            oilTex = content.Load<Texture2D>("oil");
+            enemyGhostSpriteTex = content.Load<Texture2D>("enemy_ghost_spritesheet");
+            donkeyKongSpritesheetTex = content.Load<Texture2D>("donkey_kong_spritesheet");
+            donkeyKongFalling = content.Load<Texture2D>("donkeyKongFalling");
+            heartTex = content.Load<Texture2D>("heart");
+            scoreAni1 = content.Load<Texture2D>("scoreAnimation1");
+            scoreAni2 = content.Load<Texture2D>("scoreAnimation2");
+            scoreAni3 = content.Load<Texture2D>("scoreAnimation3");
+            scoreAni4 = content.Load<Texture2D>("scoreAnimation4");
+
 
         }
     }
