@@ -1,0 +1,140 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.IO;
+using System.Threading.Tasks;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Input;
+
+namespace DonkeyKong
+{
+    class Monkey
+    {
+        Texture2D texture;
+        Rectangle position, sourceRect, spawnPos;
+        Point numberOfFrames, currentFrame;
+        Point idleFrame, bonkersFrameStart, bonkersFrameStop;
+        double timeSinceLastFrame, timeCounter, timeAllowed;
+        double timeBetweenFrames = 0.2f;
+        int currentAnimation;
+        public bool falling { get; set; }
+        int speed = 150;
+
+        public Monkey(Texture2D texture, Rectangle position, Point numberOfFrames)
+        {
+            this.texture = texture;
+            this.position = position;
+            this.numberOfFrames = numberOfFrames;
+
+            spawnPos = position;
+            currentFrame = new Point(0, 0);
+            timeAllowed = 2.0f;
+            currentAnimation = 1;
+            falling = false;
+            idleFrame = new Point(0, 0);
+            bonkersFrameStart = new Point(2, 0);
+            bonkersFrameStop = new Point(3, 0);
+
+            sourceRect = new Rectangle(currentFrame.X * texture.Width / numberOfFrames.X, currentFrame.Y * texture.Height / numberOfFrames.Y, texture.Width / numberOfFrames.X, texture.Height / numberOfFrames.Y);
+        }
+
+        public void Animate(GameTime gameTime, Point start, Point stop)
+        {
+            timeSinceLastFrame += gameTime.ElapsedGameTime.TotalSeconds;
+
+            if (timeSinceLastFrame >= timeBetweenFrames)
+            {
+                timeSinceLastFrame -= timeBetweenFrames;
+                currentFrame.X++;
+                if (currentFrame.X > stop.X || currentFrame.X < start.X)
+                {
+                    currentFrame.X = start.X;
+                }
+                if (currentFrame.X >= numberOfFrames.X)
+                {
+
+                    currentFrame.X = start.X;
+                }
+
+            }
+            sourceRect.X = currentFrame.X * texture.Width / numberOfFrames.X;
+            sourceRect.Y = currentFrame.Y * texture.Height / numberOfFrames.Y;
+        }
+
+        public Rectangle getHitBox()
+        {
+            return new Rectangle(position.X + 20, position.Y + 20, 80, 80);
+        }
+
+        public void Update(GameTime gameTime)
+        {
+            if (falling)
+            {
+                texture = TextureManager.donkeyKongFalling;
+                currentFrame = new Point(0, 0);
+                numberOfFrames = new Point(2, 1);
+                sourceRect = new Rectangle(currentFrame.X * texture.Width / numberOfFrames.X, currentFrame.Y * texture.Height / numberOfFrames.Y, texture.Width / numberOfFrames.X, texture.Height / numberOfFrames.Y);
+                currentAnimation = 2;
+                position.Y += 2;
+
+                if (position.Y >= 486)
+                {
+                    position.Y = 486;
+                    currentAnimation = 3;
+                }
+
+            }
+            
+            timeCounter += gameTime.ElapsedGameTime.TotalSeconds;
+
+            if (timeCounter >= timeAllowed && currentAnimation <= 1)
+            {
+                timeCounter -= timeAllowed;
+                currentAnimation = currentAnimation * -1;
+
+            }
+            if (currentAnimation == 1)
+            {
+                Animate(gameTime, idleFrame, idleFrame);
+            }
+            else if (currentAnimation == -1)
+            {
+                Animate(gameTime, bonkersFrameStart, bonkersFrameStop);
+            }
+            else if (currentAnimation == 2)
+            {
+                Animate(gameTime, new Point(0, 0), new Point(0, 0));
+            }
+            else if (currentAnimation == 3)
+            {
+                Animate(gameTime, new Point(1, 0), new Point(1, 0));
+            }
+            
+            
+        }
+
+        public void ResetMonkey()
+        {
+            texture = TextureManager.donkeyKongSpritesheetTex;
+            position = spawnPos;
+            currentFrame = new Point(0, 0);
+            timeAllowed = 2.0f;
+            currentAnimation = 1;
+            falling = false;
+            idleFrame = new Point(0, 0);
+            bonkersFrameStart = new Point(2, 0);
+            bonkersFrameStop = new Point(3, 0);
+            numberOfFrames = new Point(4, 1);
+
+            sourceRect = new Rectangle(currentFrame.X * texture.Width / numberOfFrames.X, currentFrame.Y * texture.Height / numberOfFrames.Y, texture.Width / numberOfFrames.X, texture.Height / numberOfFrames.Y);
+        }
+
+        public void Draw(SpriteBatch sb)
+        {
+            sb.Draw(texture, position, sourceRect, Color.White);
+        }
+        
+    }
+}
