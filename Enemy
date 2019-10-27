@@ -14,26 +14,148 @@ namespace DonkeyKong
     class Enemy
     {
         Texture2D texture;
-       
-        Rectangle sourceRect, position;
+        Vector2 destination, position, direction, tilePosBelow, spawnPos;
+        Rectangle sourceRect;
+        Rectangle destRect;
         Point numberOfFrames;
+        
+        Random rand;
         double timeSinceLastFrame, timeBetweenFrames;
         Point currentFrame;
         float speed;
 
-        public Enemy(Texture2D texture, Rectangle position)
+        bool moving, active;
+
+        public Enemy(Texture2D texture, Vector2 position, Vector2 direction, float speed)
         {
             this.texture = texture;
             this.position = position;
+            this.direction = direction;
+            this.speed = speed;
+
+            tilePosBelow = new Vector2(position.X, position.Y + Game1.tileSize.Y);
+            spawnPos = position;
 
             numberOfFrames = new Point(3, 1);
             currentFrame = new Point(0, 0);
+            rand = new Random();
             sourceRect = new Rectangle(currentFrame.X * texture.Width / numberOfFrames.X, currentFrame.Y * texture.Height / numberOfFrames.Y, texture.Width / numberOfFrames.X, texture.Height / numberOfFrames.Y);
             timeBetweenFrames = 0.2f;
-            speed = 100f;
+            destination = position + (direction * Game1.tileSize);
+            
+            destRect = new Rectangle((int)position.X, (int)position.Y, (int)Game1.tileSize.X, (int)Game1.tileSize.Y);
+            
+            moving = true;
+            active = true;
+            
         }
 
         public void Update(GameTime gameTime)
+        {
+            Animate(gameTime);
+            Move(gameTime);
+            
+
+        }
+
+        private void ChangeDirection(Vector2 dir)
+        {
+            direction = dir;
+            Vector2 newDestination = position + direction * Game1.tileSize.X;
+
+            if (Level.GetTileAtPosition(newDestination) != Tile.Tiles.Bridge || Level.GetTileAtPosition(newDestination) != Tile.Tiles.Empty && Level.GetTileAtPosition(tilePosBelow) == Tile.Tiles.Bridge && Level.GetTileAtPosition(position) != Tile.Tiles.BridgeLadder || Level.GetTileAtPosition(newDestination) == Tile.Tiles.Empty && direction.Y < 0 || Level.GetTileAtPosition(tilePosBelow + new Vector2(40 * direction.X, 0)) != Tile.Tiles.Empty && Level.GetTileAtPosition(newDestination) == Tile.Tiles.Empty)
+            {
+                destination = newDestination;
+                moving = true;
+            }
+        }
+
+        private void Move(GameTime gameTime)
+        {
+           
+            if (moving == false)
+            {
+                if (Level.GetTilePosAtPosition(new Vector2(position.X + (direction.X * Game1.tileSize.X), position.Y)).X >= Game1.windowWidth)
+                {
+                    ChangeDirection(new Vector2(direction.X * -1, direction.Y));
+                }
+                if (Level.GetTilePosAtPosition(new Vector2(position.X + (direction.X * Game1.tileSize.X), position.Y)).X < 0)
+                {
+                    ChangeDirection(new Vector2(direction.X * -1, direction.Y));
+                }
+                if (Level.GetTileAtPosition(new Vector2(position.X + (direction.X * Game1.tileSize.X), position.Y + Game1.tileSize.Y)) == Tile.Tiles.Empty) // om tilen under nästa tile är empty
+                {
+                    ChangeDirection(new Vector2(direction.X * -1, direction.Y));
+                }
+
+                if (Level.GetTileAtPosition(position) == Tile.Tiles.Ladder && Level.GetTileAtPosition(tilePosBelow) == Tile.Tiles.Bridge && direction.Y == 0)
+                {
+                    RandomizeDirectionY(-1);
+                }
+                if (Level.GetTileAtPosition(tilePosBelow) == Tile.Tiles.BridgeLadder && direction.Y >= 0)
+                {
+                    RandomizeDirectionY(1);
+                }
+                if (Level.GetTileAtPosition(tilePosBelow) == Tile.Tiles.BridgeLadder && direction.Y == -1)
+                {
+                    RandomizeDirectionX(1);
+                }
+                if (Level.GetTileAtPosition(tilePosBelow) == Tile.Tiles.Bridge && direction.Y == 1)
+                {
+                    RandomizeDirectionX(1);
+                }
+                else
+                {
+                    ChangeDirection(direction);
+                }
+            }
+            else
+            {
+                
+                position += direction * speed * (float)gameTime.ElapsedGameTime.TotalSeconds;
+                destRect.X = (int)position.X;
+                destRect.Y = (int)position.Y;
+                tilePosBelow.X = position.X;
+                tilePosBelow.Y = position.Y + Game1.tileSize.Y;
+
+                if (Vector2.Distance(position, destination) < 1)
+                {
+                    position = destination;
+                    destRect.X = (int)position.X;
+                    destRect.Y = (int)position.Y;
+                    tilePosBelow.X = position.X;
+                    tilePosBelow.Y = position.Y + Game1.tileSize.Y;
+                    moving = false;
+                }
+            }
+        }
+
+        private void RandomizeDirectionY(int dir)
+        {
+            int number = rand.Next(0, 10);
+            if (number < 5)
+            {
+                ChangeDirection(new Vector2(0, dir));
+            }
+            else
+            {
+                ChangeDirection(direction);
+            }
+        }
+        private void RandomizeDirectionX(int dir)
+        {
+            int number = rand.Next(0, 10);
+            if (number < 5)
+            {
+                ChangeDirection(new Vector2(dir, 0));
+            }
+            else
+            {
+                ChangeDirection(new Vector2(-dir, 0));
+            }
+        }
+
+        private void Animate(GameTime gameTime)
         {
             timeSinceLastFrame += gameTime.ElapsedGameTime.TotalSeconds;
 
@@ -47,15 +169,32 @@ namespace DonkeyKong
                 }
             }
 
+
             sourceRect.X = currentFrame.X * texture.Width / numberOfFrames.X;
             sourceRect.Y = currentFrame.Y * texture.Height / numberOfFrames.Y;
+        }
 
-            //position.X += (int)speed;
+        public Rectangle getHitBox()
+        {
+            return destRect;
+        }
+
+        public void ResetPosition()
+        {
+            position = spawnPos;
+            direction = new Vector2(-1, 0);
         }
 
         public void Draw(SpriteBatch sb)
         {
-            sb.Draw(texture, position, sourceRect, Color.White);
+            if (direction.X == 1)
+            {
+                sb.Draw(texture, destRect, sourceRect, Color.White, 0f, new Vector2(0, 0), SpriteEffects.FlipHorizontally, 0f);
+            }
+            else
+            {
+                sb.Draw(texture, destRect, sourceRect, Color.White);
+            }
         }
 
     }
