@@ -16,11 +16,15 @@ namespace DonkeyKong
         
         List<string> mapStrings;
         string mapName;
+        string falloutName;
         static Tile[,] tileArray;
+        public bool levelComplete;
 
         public Level(string mapName)
         {
             this.mapName = mapName;
+
+            falloutName = "fallout.txt";
         }
         
         public void BuildMap()
@@ -55,10 +59,85 @@ namespace DonkeyKong
                     {
                         tileArray[i, j] = new Tile(TextureManager.bridgeLadderTex, new Vector2(TextureManager.bridgeLadderTex.Width * i, TextureManager.bridgeLadderTex.Height * j), Tile.Tiles.BridgeLadder);
                     }
-                    
+                    else if (mapStrings[j][i] == 's')
+                    {
+                        tileArray[i, j] = new Tile(TextureManager.sprintTex, new Vector2(TextureManager.bridgeLadderTex.Width * i, TextureManager.bridgeLadderTex.Height * j), Tile.Tiles.Sprint);
+                    }
                 }
             }
 
+            foreach (Tile t in tileArray)
+            {
+                t.walkedOn = false;
+            }
+
+        }
+
+        public void BuildFallout()
+        {
+            mapReader = new StreamReader(falloutName);
+            mapStrings = new List<string>();
+            while (mapReader.EndOfStream == false)
+            {
+                mapStrings.Add(mapReader.ReadLine());
+            }
+            mapReader.Close();
+
+            tileArray = new Tile[mapStrings[0].Length, mapStrings.Count];
+
+            for (int i = 0; i < tileArray.GetLength(0); i++)
+            {
+                for (int j = 0; j < tileArray.GetLength(1); j++)
+                {
+                    if (mapStrings[j][i] == 'b')
+                    {
+                        tileArray[i, j] = new Tile(TextureManager.bridgeTex, new Vector2(TextureManager.bridgeTex.Width * i, TextureManager.bridgeTex.Height * j), Tile.Tiles.Bridge);
+                    }
+                    else if (mapStrings[j][i] == 'l')
+                    {
+                        tileArray[i, j] = new Tile(TextureManager.ladderTex, new Vector2(TextureManager.ladderTex.Width * i, TextureManager.ladderTex.Height * j), Tile.Tiles.Ladder);
+                    }
+                    else if (mapStrings[j][i] == '-')
+                    {
+                        tileArray[i, j] = new Tile(TextureManager.emptyTex, new Vector2(TextureManager.emptyTex.Width * i, TextureManager.emptyTex.Height * j), Tile.Tiles.Empty);
+                    }
+                    else if (mapStrings[j][i] == 'd')
+                    {
+                        tileArray[i, j] = new Tile(TextureManager.bridgeLadderTex, new Vector2(TextureManager.bridgeLadderTex.Width * i, TextureManager.bridgeLadderTex.Height * j), Tile.Tiles.BridgeLadder);
+                    }
+                    else if (mapStrings[j][i] == 's')
+                    {
+                        tileArray[i, j] = new Tile(TextureManager.sprintTex, new Vector2(TextureManager.bridgeLadderTex.Width * i, TextureManager.bridgeLadderTex.Height * j), Tile.Tiles.Sprint);
+                    }
+                }
+
+            }
+        }
+
+        public void UpdateMap()
+        {
+            if (CheckSprints() <= 0)
+            {
+                levelComplete = true;
+            }
+        }
+
+        private int CheckSprints()
+        {
+            int sprintsLeft = 0;
+            foreach (Tile t in tileArray)
+            {
+                if (t.walkedOn && t.tileType == Tile.Tiles.Sprint)
+                {
+                    tileArray[(int)t.position.X / 40, (int)t.position.Y / 40] = new Tile(TextureManager.emptyTex, new Vector2(t.position.X, t.position.Y), Tile.Tiles.Empty);
+                }
+                if (t.tileType == Tile.Tiles.Sprint)
+                {
+                    sprintsLeft++;
+                }
+                
+            }
+            return sprintsLeft;
         }
 
         public void DrawMap(SpriteBatch sb)
@@ -73,9 +152,19 @@ namespace DonkeyKong
             }
         }
 
+        public static Tile GetTileStateAtPosition(Vector2 vec)
+        {
+            return tileArray[(int)vec.X / 40, (int)vec.Y / 40];
+        }
+
         public static Tile.Tiles GetTileAtPosition(Vector2 vec)
         {
             return tileArray[(int)vec.X / 40, (int)vec.Y / 40].tileType;
+        }
+
+        public static Vector2 GetTilePosAtPosition(Vector2 vec)
+        {
+            return tileArray[(int)vec.X / 40, (int)vec.Y / 40].position;
         }
 
     }
