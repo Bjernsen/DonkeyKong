@@ -1,0 +1,94 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.IO;
+using System.Threading.Tasks;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Input;
+
+namespace DonkeyKong
+{
+    class Lover
+    {
+        Texture2D texture, helpTex;
+        Rectangle position, sourceRect, helpPos;
+        Point numberOfFrames, currentFrame;
+        Point idleFrame, bonkersFrameStart, bonkersFrameStop;
+        double timeSinceLastFrame, timeCounter, timeAllowed;
+        double timeBetweenFrames = 0.2f;
+        int currentDirection;
+
+        public Lover(Texture2D texture, Rectangle position, Point numberOfFrames)
+        {
+            this.texture = texture;
+            this.position = position;
+            this.numberOfFrames = numberOfFrames;
+
+            currentFrame = new Point(0, 0);
+            timeAllowed = 5.0f;
+            currentDirection = 1;
+
+            idleFrame = new Point(0, 0);
+            bonkersFrameStart = new Point(2, 0);
+            bonkersFrameStop = new Point(3, 0);
+
+            helpTex = TextureManager.helpTex;
+            helpPos = new Rectangle(position.X - 40, position.Y, helpTex.Width, helpTex.Height);
+
+            sourceRect = new Rectangle(currentFrame.X * texture.Width / numberOfFrames.X, currentFrame.Y * texture.Height / numberOfFrames.Y, texture.Width / numberOfFrames.X, texture.Height / numberOfFrames.Y);
+        }
+
+        public void Animate(GameTime gameTime, Point start, Point stop)
+        {
+            timeSinceLastFrame += gameTime.ElapsedGameTime.TotalSeconds;
+
+            if (timeSinceLastFrame >= timeBetweenFrames)
+            {
+                timeSinceLastFrame -= timeBetweenFrames;
+                currentFrame.X++;
+                if (currentFrame.X > stop.X || currentFrame.X < start.X)
+                {
+                    currentFrame.X = start.X;
+                }
+                if (currentFrame.X >= numberOfFrames.X)
+                {
+
+                    currentFrame.X = start.X;
+                }
+
+            }
+            sourceRect.X = currentFrame.X * texture.Width / numberOfFrames.X;
+            sourceRect.Y = currentFrame.Y * texture.Height / numberOfFrames.Y;
+        }
+
+        public void Update(GameTime gameTime)
+        {
+            timeCounter += gameTime.ElapsedGameTime.TotalSeconds;
+
+            if (timeCounter >= timeAllowed)
+            {
+                timeCounter -= timeAllowed;
+                currentDirection = currentDirection * -1;
+
+            }
+            
+        }
+
+        public void Draw(SpriteBatch sb)
+        {
+            if (currentDirection == 1)
+            {
+                sb.Draw(texture, position, sourceRect, Color.White, 0.0f, new Vector2(0, 0), SpriteEffects.FlipHorizontally, 0f);
+                sb.Draw(helpTex, new Rectangle(helpPos.X + 80, helpPos.Y, helpPos.Width, helpPos.Height), Color.White);
+            }
+            else if (currentDirection == -1)
+            {
+                sb.Draw(texture, position, sourceRect, Color.White);
+                
+            }
+        }
+
+    }
+}
