@@ -7,7 +7,7 @@ using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
+using System.Threading;
 
 namespace DonkeyKong
 {
@@ -20,16 +20,37 @@ namespace DonkeyKong
         SpriteBatch spriteBatch;
         Level level;
         Player player;
-        Enemy enemy1;
+        Vector2 oilSpawn1, oilSpawn2, oilSpawn3, oilSpawn4;
+        Monkey donkeyKong;
+        Lover pauline;
+        Item dress, umbrella, phone, hammer;
+        Item destroy;
+        List<Item> itemList;
+        Rectangle dressPos, umbPos, phonePos, hammerPos;
+        Random rand;
         TextureManager texMan;
+        List<Enemy> enemyList;
+
+        double timeSinceLastEnemy, enemySpawnTimer, deathAnimationDuration, deathAnimationTimer;
+
+        int scoreVal;
+
+        public static readonly Vector2 tileSize = new Vector2(40, 40);
+        public static readonly int windowWidth = 1040;
+        public static readonly int windowHeight = 826;
 
         string startScreenText, loseScreenText;
+        double scoreTimer, scoretime, winTimer, winTime;
 
         enum GameState
         {
             Start,
             Playing,
-            End,
+            DeathFreeze,
+            ItemFreeze,
+            Fallout,
+            Lose,
+            Win,
             HighScores,
             CharacterSelect
         }
@@ -39,8 +60,8 @@ namespace DonkeyKong
         public Game1()
         {
             graphics = new GraphicsDeviceManager(this);
-            graphics.PreferredBackBufferWidth = 1040;
-            graphics.PreferredBackBufferHeight = 826;
+            graphics.PreferredBackBufferWidth = windowWidth;
+            graphics.PreferredBackBufferHeight = windowHeight;
             graphics.ApplyChanges();
             Content.RootDirectory = "Content";
         }
@@ -65,11 +86,39 @@ namespace DonkeyKong
         protected override void LoadContent()
         {
             // Create a new SpriteBatch, which can be used to draw textures.
+            enemyList = new List<Enemy>();
+            itemList = new List<Item>();
+
+            phonePos = new Rectangle(20 * 40, 640, 40, 40);
+            hammerPos = new Rectangle(12 * 40, 380, 40, 40);
+            dressPos = new Rectangle(4 * 40, 280, 40, 40);
+            umbPos = new Rectangle(21 * 40, 280, 40, 40);
+
+            enemySpawnTimer = 3;
+            deathAnimationDuration = 2.5;
+            scoretime = 1;
+            winTimer = 3;
+            
+
+            oilSpawn1 = new Vector2(25 * 40, 760);
+            oilSpawn2 = new Vector2(25 * 40, 640);
+            oilSpawn3 = new Vector2(24 * 40, 520);
+            oilSpawn4 = new Vector2(23 * 40, 400);
+;
             spriteBatch = new SpriteBatch(GraphicsDevice);
             texMan = new TextureManager(Content);
             level = new Level("Map1.txt");
             player = new Player(TextureManager.marioSpritesheetTex);
-            enemy1 = new Enemy(TextureManager.enemySpritesheetTex, new Rectangle(320, 646, TextureManager.enemySpritesheetTex.Width, TextureManager.enemySpritesheetTex.Height));
+            donkeyKong = new Monkey(TextureManager.donkeyKongSpritesheetTex, new Rectangle(12 * 40, 205, 120, 120), new Point(4, 1));
+            pauline = new Lover(TextureManager.paulineTex, new Rectangle(13 * 40, 160, 40, 40), new Point(1, 1));
+
+            dress = new Item(TextureManager.dressTex, dressPos, 300, false);
+            phone = new Item(TextureManager.phoneTex, phonePos, 200, false);
+            umbrella = new Item(TextureManager.umbrellaTex, umbPos, 300, false);
+            hammer = new Item(TextureManager.hammerTex, hammerPos, 100, true);
+
+            FillItemList();
+            
 
             startScreenText = "PRESS ENTER TO PLAY\nPRESS SPACE TO CHOOSE\nCHARACTER";
             loseScreenText = "PRESS ENTER TO PLAY AGAIN\nPRESS SPACE FOR MAIN MENU";
@@ -95,9 +144,13 @@ namespace DonkeyKong
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Update(GameTime gameTime)
         {
-            IsMouseVisible = true;
+            //IsMouseVisible = true;
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
+            {
+               
                 Exit();
+            }
+                
             KeyMouseReader.Update();
 
             switch (currentGameState)
@@ -114,28 +167,145 @@ namespace DonkeyKong
                     break;
 
                 case GameState.Playing:
-                    player.Update(gameTime);
-                    enemy1.Update(gameTime);
-                    if (player.IsDead())
+
+                    if (!player.IsAlive())
                     {
-                        currentGameState = GameState.End;
+                        currentGameState = GameState.Lose;
+                    }
+                    timeSinceLastEnemy += gameTime.ElapsedGameTime.TotalSeconds;
+
+                    if (timeSinceLastEnemy >= enemySpawnTimer)
+                    {
+                        timeSinceLastEnemy -= enemySpawnTimer;
+                        SpawnEnemy();
+                    }
+
+                    level.UpdateMap();
+                    player.Update(gameTime);
+                    donkeyKong.Update(gameTime);
+                    pauline.Update(gameTime);
+                    
+
+                    foreach (Enemy e in enemyList)
+                    {
+                        e.Update(gameTime);
+
+                        if (player.getHitBox().Intersects(e.getHitBox()))
+                        {
+                            player.LoseLife(gameTime);
+                            currentGameState = GameState.DeathFreeze;
+                        }
+                    }
+                    foreach (Item i in itemList)
+                    {
+                        if (player.getHitBox().Intersects(i.getHitBox()))
+                        {
+                            scoreVal = i.getValue();
+                            player.AddToScore(i.getValue());
+                            if (i.isHammer)
+                            {
+                                player.hasHammer = true;
+                            }
+                            destroy = i;
+                            currentGameState = GameState.ItemFreeze;
+                        }
+                    }
+
+                    itemList.Remove(destroy);
+
+                    if (player.getHitBox().Intersects(donkeyKong.getHitBox())) 
+                    {
+                        player.LoseLife(gameTime);
+                        currentGameState = GameState.DeathFreeze;
+                    }
+
+                    
+                    if (level.levelComplete)
+                    {
+                        player.AddToScore(player.bonusScore);
+                        player.ResetAfterLifeLost();
+                        currentGameState = GameState.Fallout;
                     }
                     break;
 
-                case GameState.End:
+                case GameState.DeathFreeze:
+
+                    player.StartDeathAnimation(gameTime);
+
+                    deathAnimationTimer += gameTime.ElapsedGameTime.TotalSeconds;
+
+                    
+
+                    if (deathAnimationTimer >= deathAnimationDuration + 0.3)
+                    {
+                        
+                        player.ResetAfterLifeLost();
+                        deathAnimationTimer = 0;
+                        currentGameState = GameState.Playing;
+                    }
+
+                    break;
+
+                case GameState.ItemFreeze:
+
+                    scoreTimer += gameTime.ElapsedGameTime.TotalSeconds;
+
+                    if (scoreTimer >= scoretime)
+                    {
+                        scoreTimer = 0;
+                        currentGameState = GameState.Playing;
+                    }
+
+                    break;
+
+                case GameState.Fallout:
+                    
+                    donkeyKong.falling = true;
+                    level.BuildFallout();
+                    donkeyKong.Update(gameTime);
+                    
+                    player.Update(gameTime);
+
+                    if (player.reachedPauline)
+                    {
+                        winTimer += gameTime.ElapsedGameTime.TotalSeconds;
+
+                        if (winTimer > winTime)
+                        {
+                            winTimer = 0;
+                            currentGameState = GameState.Win;
+                        }
+                    }
+                    
+                    break;
+
+                case GameState.Lose:
                     if (Keyboard.GetState().IsKeyDown(Keys.Enter))
                     {
+                        ResetGame();
+                        currentGameState = GameState.HighScores;
+                    }
+                    break;
+
+                case GameState.Win:
+                    if (Keyboard.GetState().IsKeyDown(Keys.Enter))
+                    {
+                        
                         currentGameState = GameState.HighScores;
                     }
                     break;
 
                 case GameState.HighScores:
-                    if (Keyboard.GetState().IsKeyDown(Keys.Enter))
+                    player.MakeHighscoreList();
+                    if (KeyMouseReader.KeyPressed(Keys.Enter))
                     {
+                        ResetGame();
+                        
                         currentGameState = GameState.Playing;
                     }
                     if (Keyboard.GetState().IsKeyDown(Keys.Space))
                     {
+                        ResetGame();
                         currentGameState = GameState.Start;
                     }
                     break;
@@ -170,29 +340,156 @@ namespace DonkeyKong
                 case GameState.Playing:
 
                     level.DrawMap(spriteBatch);
-                    enemy1.Draw(spriteBatch);
+                    spriteBatch.Draw(TextureManager.oilTex, oilSpawn1, Color.White);
+                    spriteBatch.Draw(TextureManager.oilTex, oilSpawn2, Color.White);
+                    spriteBatch.Draw(TextureManager.oilTex, oilSpawn3, Color.White);
+                    spriteBatch.Draw(TextureManager.oilTex, oilSpawn4, Color.White);
+                    foreach (Enemy e in enemyList)
+                    {
+                        e.Draw(spriteBatch);
+                    }
+                    foreach (Item i in itemList)
+                    {
+                        i.Draw(spriteBatch);
+                    }
+                    donkeyKong.Draw(spriteBatch);
+                    pauline.Draw(spriteBatch);
                     player.DrawPlayer(spriteBatch);
-                    player.DrawUI(spriteBatch);
+                    player.DrawUI(spriteBatch, gameTime);
 
                     break;
 
-                case GameState.End:
+                case GameState.DeathFreeze:
+                    if (deathAnimationTimer >= deathAnimationDuration)
+                    {
+                        GraphicsDevice.Clear(Color.Black);
+                        
+                    }
+
+                    level.DrawMap(spriteBatch);
+                    spriteBatch.Draw(TextureManager.oilTex, oilSpawn1, Color.White);
+                    spriteBatch.Draw(TextureManager.oilTex, oilSpawn2, Color.White);
+                    spriteBatch.Draw(TextureManager.oilTex, oilSpawn3, Color.White);
+                    spriteBatch.Draw(TextureManager.oilTex, oilSpawn4, Color.White);
+                    foreach (Enemy e in enemyList)
+                    {
+                        e.Draw(spriteBatch);
+                    }
+                    foreach (Item i in itemList)
+                    {
+                        i.Draw(spriteBatch);
+                    }
+                    donkeyKong.Draw(spriteBatch);
+                    pauline.Draw(spriteBatch);
+                    player.DrawPlayer(spriteBatch);
+                    player.DrawUI(spriteBatch, gameTime);
+                    break;
+
+                case GameState.ItemFreeze:
+                    level.DrawMap(spriteBatch);
+                    spriteBatch.Draw(TextureManager.oilTex, oilSpawn1, Color.White);
+                    spriteBatch.Draw(TextureManager.oilTex, oilSpawn2, Color.White);
+                    spriteBatch.Draw(TextureManager.oilTex, oilSpawn3, Color.White);
+                    spriteBatch.Draw(TextureManager.oilTex, oilSpawn4, Color.White);
+                    foreach (Enemy e in enemyList)
+                    {
+                        e.Draw(spriteBatch);
+                    }
+                    foreach (Item i in itemList)
+                    {
+                        i.Draw(spriteBatch);
+                    }
+                    donkeyKong.Draw(spriteBatch);
+                    pauline.Draw(spriteBatch);
+                    player.DrawPlayer(spriteBatch);
+                    player.DrawUI(spriteBatch, gameTime);
+                    player.DrawScoreAddition(spriteBatch, gameTime, scoreVal);
+                    break;
+
+                case GameState.Fallout:
+                    level.DrawMap(spriteBatch);
+                    donkeyKong.Draw(spriteBatch);
+                    pauline.Draw(spriteBatch);
+                    player.DrawPlayer(spriteBatch);
+                    player.DrawUI(spriteBatch, gameTime);
+                    if (player.reachedTop)
+                    {
+                        spriteBatch.Draw(TextureManager.heartTex, new Vector2(13 * tileSize.X, 120), Color.White);
+                        
+                    }
+                    break;
+                
+                case GameState.Lose:
                     spriteBatch.Draw(TextureManager.loseScreenTex, new Vector2(0, 0), Color.White);
                     break;
+
+                case GameState.Win:
+                    spriteBatch.DrawString(TextureManager.adore64Font, "YOU WON! WELL DONE", new Vector2(200, 300), Color.White);
+                    player.DrawScore(spriteBatch);
+                    break;
+                case GameState.HighScores:
+                    spriteBatch.DrawString(TextureManager.adore64Font, "HIGHSCORES:", new Vector2(300, 120), Color.White);
+                    player.DrawHighscoreList(spriteBatch);
+                    break;
+
             }
             spriteBatch.End();
 
             // TODO: Add your drawing code here
 
             base.Draw(gameTime);
-         }
+        }
+
+        public void FillItemList()
+        {
+            itemList.Clear();
+            itemList.Add(umbrella);
+            itemList.Add(hammer);
+            itemList.Add(phone);
+            itemList.Add(dress);
+        }
+
+        public void ResetGame()
+        {
+            player.ResetGame();
+            donkeyKong.ResetMonkey();
+            enemyList.Clear();
+            level.BuildMap();
+            destroy = null;
+            FillItemList();
+            level.levelComplete = false;
+        }
+
+        public void SpawnEnemy()
+        {
+            rand = new Random();
+            int spawn = rand.Next(1, 5);
+            int speed = rand.Next(75, 126);
+
+            if (enemyList.Count < 5)
+            {
+                if (spawn == 1)
+                {
+                    enemyList.Add(new Enemy(TextureManager.enemySpritesheetTex, oilSpawn1, new Vector2(-1, 0), speed));
+                }
+                else if (spawn == 2)
+                {
+                    enemyList.Add(new Enemy(TextureManager.enemySpritesheetTex, oilSpawn2, new Vector2(-1, 0), speed));
+                }
+                else if (spawn == 3)
+                {
+                    enemyList.Add(new Enemy(TextureManager.enemySpritesheetTex, oilSpawn3, new Vector2(-1, 0), speed));
+                }
+                else if (spawn == 4)
+                {
+                    enemyList.Add(new Enemy(TextureManager.enemySpritesheetTex, oilSpawn4, new Vector2(-1, 0), speed));
+                }
+            }
+        }
+
 
             
            
-        }
-
-        
-
-        
     }
+}
 
